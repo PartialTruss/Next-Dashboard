@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
-import { NextResponse } from 'next/server';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import postgres from 'postgres';
-import { customers, invoices, revenue, users } from '../lib/placeholder-data';
+import { customers, invoices, revenue, users } from '../../lib/placeholder-data';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -87,10 +87,11 @@ async function seedRevenue() {
   }
 }
 
-export async function GET() {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Seeding is disabled in production' }, { status: 403 });
+    return res.status(403).json({ error: 'Seeding is disabled in production' });
   }
+
   try {
     await sql.begin(async (sql) => {
       await seedUsers();
@@ -99,9 +100,9 @@ export async function GET() {
       await seedRevenue();
     });
 
-    return NextResponse.json({ message: 'Database seeded successfully' });
+    return res.status(200).json({ message: 'Database seeded successfully' });
   } catch (error: any) {
     console.error('Seeding failed:', error);
-    return NextResponse.json({ error: error.message || 'Unknown error' }, { status: 500 });
+    return res.status(500).json({ error: error.message || 'Unknown error' });
   }
 }
